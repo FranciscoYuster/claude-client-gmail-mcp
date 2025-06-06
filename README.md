@@ -32,6 +32,30 @@ MCP (Model Context Protocol) es un protocolo de integración desarrollado por An
 
 ---
 
+## 💻 Instalación en macOS / Linux
+
+1. Sigue los mismos pasos de Google Cloud indicados arriba para obtener tu archivo de credenciales y dejarlo en Descargas.
+2. Clona este repositorio desde tu terminal:
+   ```sh
+   git clone https://github.com/FranciscoYuster/gmail-client-mcp-server
+   cd gmail-client-mcp-server
+   ```
+3. Ejecuta el script para sistemas Unix:
+   ```sh
+   python3 setupUnix.py
+   ```
+4. El instalador hará el resto.
+5. Cuando veas el mensaje final, ¡abre Claude Desktop y disfruta!
+
+---
+
+> [!IMPORTANT]
+> Si usas **Windows**, ejecuta: `python setup.py`
+> Si usas **macOS o Linux**, ejecuta: `python3 setupUnix.py`
+> Ambos scripts ejecutan la instalación, pero cada uno está adaptado a su sistema operativo.
+
+---
+
 ## 🔒 Seguridad
 
 > [!WARNING]
