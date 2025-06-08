@@ -1,7 +1,12 @@
 import re
 import os
 import base64
+import mimetypes
 from typing import List, Dict, Any, Optional
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+from email.mime.base import MIMEBase
+from email import encoders
 
 from google.oauth2.credentials import Credentials
 from google.auth.transport.requests import Request
@@ -64,7 +69,7 @@ def validate_email(email: str) -> bool:
 
 def create_email_message(args: Dict[str, Any]) -> str:
     """
-    Construye un mensaje MIME de texto plano a partir de los datos recibidos.
+    Construye un mensaje MIME de texto plano o multipart (con adjuntos) a partir de los datos recibidos.
 
     Claves de args:
         - from: Remitente (str)
@@ -74,9 +79,10 @@ def create_email_message(args: Dict[str, Any]) -> str:
         - in_reply_to: ID del mensaje al que se responde (opcional)
         - subject: Asunto (str)
         - body: Cuerpo (str)
+        - attachments: lista de dicts con 'filename' y 'data' (base64)
 
     return:
-        - Mensaje MIME en texto plano (str)
+        - Mensaje MIME en texto plano o multipart (str)
     """
     # Codifica el asunto
     subject = encode_email_header(args.get("subject", ""))
@@ -87,7 +93,30 @@ def create_email_message(args: Dict[str, Any]) -> str:
         if not validate_email(addr):
             raise ValueError(f"Dirección de correo inválida: {addr}")
 
-    # Construye las cabeceras
+    # Si hay adjuntos, crear mensaje multipart
+    attachments = args.get("attachments")
+    if attachments:
+        msg = MIMEMultipart()
+        msg["From"] = args.get("from", "me")
+        msg["To"] = ", ".join(to_list)
+        if args.get("cc"): msg["Cc"] = ", ".join(args["cc"])
+        if args.get("bcc"): msg["Bcc"] = ", ".join(args["bcc"])
+        msg["Subject"] = subject
+        if args.get("in_reply_to"):
+            msg["In-Reply-To"] = args["in_reply_to"]
+            msg["References"] = args["in_reply_to"]
+        msg.attach(MIMEText(args.get("body", ""), "plain", "utf-8"))
+        for att in attachments:
+            filename = att["filename"]
+            data = att["data"]
+            maintype, subtype = mimetypes.guess_type(filename)[0].split("/") if mimetypes.guess_type(filename)[0] else ("application", "octet-stream")
+            part = MIMEBase(maintype, subtype)
+            part.set_payload(base64.b64decode(data))
+            encoders.encode_base64(part)
+            part.add_header('Content-Disposition', f'attachment; filename="{filename}"')
+            msg.attach(part)
+        return msg.as_string()
+    # Si no hay adjuntos, mensaje simple
     headers: List[str] = []
     headers.append(f"From: {args.get('from', 'me')}")
     headers.append(f"To: {', '.join(to_list)}")

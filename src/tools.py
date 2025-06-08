@@ -4,6 +4,7 @@ Envío, borradores, lectura, búsqueda, modificación, eliminación y gestión d
 """
 import base64
 import json
+import os
 from typing import Dict, Any, Tuple, List
 from bs4 import BeautifulSoup
 
@@ -19,7 +20,7 @@ from utils.utils import decode_base64url
 # --- Herramientas: Operaciones de correo ---
 async def send_email(args: Dict[str, Any]) -> str:
     """
-    Envía un correo electrónico con los parámetros especificados.
+    Envía un correo electrónico con los parámetros especificados, soportando adjuntos.
 
     Args:
         args (Dict[str, Any]): Diccionario con las siguientes claves.
@@ -30,32 +31,34 @@ async def send_email(args: Dict[str, Any]) -> str:
             - bcc (List[str], opcional): Lista de BCC.
             - in_reply_to (str, opcional): ID del mensaje al que se responde.
             - threadid (str, opcional): ID del hilo.
+            - attachments (List[Dict], opcional): Lista de adjuntos, cada uno con 'filename' y 'data' (base64).
 
     Returns:
         str: Mensaje de resultado del envío (ejemplo: "Correo enviado: ID_MENSAJE").
     """
-    msg = gmail_utils.create_email_message({
-        "to": args["to"],                       # Lista de destinatarios
-        "subject": args["subject"],             # Asunto
-        "body": args["body"],                   # Cuerpo
-        "cc": args.get("cc"),                   # CC (opcional)
-        "bcc": args.get("bcc"),                 # BCC (opcional)
-        "in_reply_to": args.get("in_reply_to"), # ID de mensaje al que se responde (opcional)
-    }).encode("utf-8")
-    # Codificar el mensaje en Base64
-    raw = base64.urlsafe_b64encode(msg).decode().rstrip("=")
-    # payload contiene los datos del mensaje
-    payload: Dict[str, Any] = {"raw": raw}
-    # Si se especifica threadid, se añade al payload
-    if "threadid" in args:
-        payload["threadId"] = args["threadid"]
-    response = gmail_utils.service.users().messages().send(userId="me", body=payload).execute()
-    return f"Correo enviado: {response['id']}"
+    try:
+        msg = gmail_utils.create_email_message({
+            "to": args["to"],
+            "subject": args["subject"],
+            "body": args["body"],
+            "cc": args.get("cc"),
+            "bcc": args.get("bcc"),
+            "in_reply_to": args.get("in_reply_to"),
+            "attachments": args.get("attachments")
+        }).encode("utf-8")
+        raw = base64.urlsafe_b64encode(msg).decode().rstrip("=")
+        payload: Dict[str, Any] = {"raw": raw}
+        if "threadid" in args:
+            payload["threadId"] = args["threadid"]
+        response = gmail_utils.service.users().messages().send(userId="me", body=payload).execute()
+        return f"Correo enviado: {response['id']}"
+    except Exception as e:
+        return f"❌ Error enviando correo: {str(e)}"
 
 
 async def create_draft(args: Dict[str, Any]) -> str:
     """
-    Crea un borrador de correo electrónico con los parámetros especificados.
+    Crea un borrador de correo electrónico con soporte para adjuntos.
 
     Args:
         args (Dict[str, Any]): Diccionario con las siguientes claves.
@@ -66,25 +69,60 @@ async def create_draft(args: Dict[str, Any]) -> str:
             - bcc (List[str], opcional): Lista de BCC.
             - in_reply_to (str, opcional): ID del mensaje al que se responde.
             - threadid (str, opcional): ID del hilo.
+            - attachments (List[Dict], opcional): Lista de adjuntos.
 
     Returns:
         str: Mensaje de resultado de la creación del borrador (ejemplo: "Borrador creado: ID_BORRADOR").
     """
-    msg = gmail_utils.create_email_message({
-        "to": args["to"],
-        "subject": args["subject"],
-        "body": args["body"],
-        "cc": args.get("cc"),
-        "bcc": args.get("bcc"),
-        "in_reply_to": args.get("in_reply_to"),
-    }).encode("utf-8")
-    raw = base64.urlsafe_b64encode(msg).decode().rstrip("=")
-    # Crear el borrador
-    draft = gmail_utils.service.users().drafts().create(
-        userId="me", 
-        body={"message": {"raw": raw, "threadId": args.get("threadid")}}
+    try:
+        msg = gmail_utils.create_email_message({
+            "to": args["to"],
+            "subject": args["subject"],
+            "body": args["body"],
+            "cc": args.get("cc"),
+            "bcc": args.get("bcc"),
+            "in_reply_to": args.get("in_reply_to"),
+            "attachments": args.get("attachments")
+        }).encode("utf-8")
+        raw = base64.urlsafe_b64encode(msg).decode().rstrip("=")
+        draft = gmail_utils.service.users().drafts().create(
+            userId="me",
+            body={"message": {"raw": raw, "threadId": args.get("threadid")}}
         ).execute()
-    return f"Borrador creado: {draft.get('id')}"
+        return f"Borrador creado: {draft.get('id')}"
+    except Exception as e:
+        return f"❌ Error creando borrador: {str(e)}"
+
+
+async def download_attachments(args: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Descarga todos los adjuntos de un mensaje dado su ID.
+    Args:
+        - messageid (str): ID del mensaje.
+        - download_dir (str, opcional): Carpeta destino.
+
+    Returns:
+        Dict con lista de archivos descargados o blobs base64.
+    """
+    try:
+        msg = gmail_utils.service.users().messages().get(userId="me", id=args["messageid"], format="full").execute()
+        files = []
+        for part in msg["payload"].get("parts", []):
+            if part.get("filename"):
+                att_id = part["body"].get("attachmentId")
+                if att_id:
+                    att = gmail_utils.service.users().messages().attachments().get(userId="me", messageId=args["messageid"], id=att_id).execute()
+                    data = att["data"]
+                    file_data = base64.urlsafe_b64decode(data + "==")
+                    filename = part["filename"]
+                    download_dir = args.get("download_dir", os.getcwd())
+                    path = os.path.join(download_dir, filename)
+                    with open(path, "wb") as f:
+                        f.write(file_data)
+                    files.append(path)
+        return {"files": files}
+    except Exception as e:
+        return {"error": str(e)}
 
 
 async def read_email(args: Dict[str, Any]) -> str:
@@ -146,13 +184,16 @@ async def read_email(args: Dict[str, Any]) -> str:
 
 async def search_emails(args: Dict[str, Any]) -> Dict[str, Any]:
     """
-    Busca correos en Gmail y devuelve IDs y cabeceras.
+    Busca correos en Gmail con filtros avanzados y devuelve metadatos útiles.
 
     Args:
         args:
             - query (str, opcional): Consulta de búsqueda de Gmail (ejemplo: "is:unread newer_than:1d")
             - maxResults (int, opcional): Máximo de resultados (por defecto 10)
             - pageToken (str, opcional): Token para la siguiente página
+            - labelIds (List[str], opcional): Filtrar por etiquetas.
+            - from (str, opcional): Filtrar por remitente.
+            - hasAttachment (bool, opcional): Solo con adjuntos.
 
     Returns:
         Dict[str, Any]: {
@@ -169,72 +210,149 @@ async def search_emails(args: Dict[str, Any]) -> Dict[str, Any]:
             "nextPageToken": <str>  # None si no hay más páginas
         }
     """
-    service = gmail_utils.service
+    try:
+        service = gmail_utils.service
+        query = args.get("query", "")
+        if args.get("from"):
+            query += f" from:{args['from']}"
+        if args.get("hasAttachment"):
+            query += " has:attachment"
+        max_results = args.get("maxResults", 10)
+        page_token = args.get("pageToken")
+        label_ids = args.get("labelIds")
+        list_params = {"userId": "me", "maxResults": max_results}
+        if query:
+            list_params["q"] = query
+        if page_token:
+            list_params["pageToken"] = page_token
+        if label_ids:
+            list_params["labelIds"] = label_ids
+        resp = service.users().messages().list(**list_params).execute()
+        ids = [m["id"] for m in resp.get("messages", [])]
+        next_token = resp.get("nextPageToken")
+        results: List[Dict[str, Any]] = []
+        total = resp.get("resultSizeEstimate", 0)
+        if ids:
+            batch = service.new_batch_http_request()
+            def _collect(request_id, response, exception):
+                if exception:
+                    return
+                hdrs = {h["name"]: h["value"] for h in response["payload"]["headers"]}
+                has_attachments = any(
+                    part.get("filename") for part in response["payload"].get("parts", [])
+                )
+                size = response.get("sizeEstimate", 0)
+                snippet = response.get("snippet", "")
+                results.append({
+                    "id": response["id"],
+                    "threadId": response.get("threadId"),
+                    "Subject": hdrs.get("Subject", ""),
+                    "From": hdrs.get("From", ""),
+                    "Date": hdrs.get("Date", ""),
+                    "hasAttachments": has_attachments,
+                    "size": size,
+                    "snippet": snippet
+                })
+            for msg_id in ids:
+                batch.add(
+                    service.users().messages().get(
+                        userId="me",
+                        id=msg_id,
+                        format="full",
+                        metadataHeaders=["Subject", "From", "Date"]
+                    ),
+                    callback=_collect
+                )
+            batch.execute()
+        return {
+            "messages": results,
+            "nextPageToken": next_token,
+            "total": total,
+            "pageSize": max_results
+        }
+    except Exception as e:
+        return {"error": str(e)}
 
-    # Preparar argumentos
-    query = args.get("query", "")
-    max_results = args.get("maxResults", 10)
-    page_token = args.get("pageToken")
 
-    # Llamar a la API list
-    list_params = {"userId": "me", "maxResults": max_results}
-    if query:
-        list_params["q"] = query
-    if page_token:
-        list_params["pageToken"] = page_token
-
-    resp = service.users().messages().list(**list_params).execute()
-    ids = [m["id"] for m in resp.get("messages", [])]
-    next_token = resp.get("nextPageToken")
-
-    # Obtener metadatos en lote
-    results: List[Dict[str, Any]] = []
-    if ids:
-        batch = service.new_batch_http_request()
-        def _collect(request_id, response, exception):
-            if exception:
-                # Si falla uno, se omite
-                return
-            hdrs = {h["name"]: h["value"] for h in response["payload"]["headers"]}
-            results.append({
-                "id": response["id"],
-                "threadId": response.get("threadId"),
-                "Subject": hdrs.get("Subject", ""),
-                "From": hdrs.get("From", ""),
-                "Date": hdrs.get("Date", ""),
-            })
-
-        for msg_id in ids:
-            batch.add(
-                service.users().messages().get(
-                    userId="me",
-                    id=msg_id,
-                    format="metadata",
-                    metadataHeaders=["Subject", "From", "Date"]
-                ),
-                callback=_collect
-            )
-        batch.execute()
-
-    return {
-        "messages": results,
-        "nextPageToken": next_token
-    }
-
-
-async def delete_email(args: Dict[str, Any]) -> str:
+async def get_thread(args: Dict[str, Any]) -> Dict[str, Any]:
     """
-    Elimina un correo electrónico por su ID.
+    Obtiene todos los mensajes de un hilo dado un threadId.
 
     Args:
-        args (Dict[str, Any]):
-            - messageid (str): ID del mensaje a eliminar.
+        - threadId (str): ID del hilo.
 
     Returns:
-        str: Mensaje de resultado de la eliminación (ejemplo: "Correo eliminado: ID_MENSAJE").
+        Dict con los mensajes del hilo.
     """
-    gmail_utils.service.users().messages().delete(userId="me", id=args["messageid"]).execute()
-    return f"Correo eliminado: {args['messageid']}"
+    try:
+        thread = gmail_utils.service.users().threads().get(userId="me", id=args["threadId"]).execute()
+        return thread
+    except Exception as e:
+        return {"error": str(e)}
+
+
+async def mark_as_read(args: Dict[str, Any]) -> str:
+    """
+    Marca un mensaje como leído.
+
+    Args:
+        messageid (str)
+    """
+    try:
+        gmail_utils.service.users().messages().modify(
+            userId="me", id=args["messageid"], body={"removeLabelIds": ["UNREAD"]}
+        ).execute()
+        return f"Mensaje marcado como leído: {args['messageid']}"
+    except Exception as e:
+        return f"❌ Error marcando como leído: {str(e)}"
+
+
+async def mark_as_unread(args: Dict[str, Any]) -> str:
+    """
+    Marca un mensaje como no leído.
+
+    Args:
+        messageid (str)
+    """
+    try:
+        gmail_utils.service.users().messages().modify(
+            userId="me", id=args["messageid"], body={"addLabelIds": ["UNREAD"]}
+        ).execute()
+        return f"Mensaje marcado como no leído: {args['messageid']}"
+    except Exception as e:
+        return f"❌ Error marcando como no leído: {str(e)}"
+
+
+async def mark_as_important(args: Dict[str, Any]) -> str:
+    """
+    Marca un mensaje como importante.
+
+    Args:
+        messageid (str)
+    """
+    try:
+        gmail_utils.service.users().messages().modify(
+            userId="me", id=args["messageid"], body={"addLabelIds": ["IMPORTANT"]}
+        ).execute()
+        return f"Mensaje marcado como importante: {args['messageid']}"
+    except Exception as e:
+        return f"❌ Error marcando como importante: {str(e)}"
+
+
+async def mark_as_not_important(args: Dict[str, Any]) -> str:
+    """
+    Marca un mensaje como no importante.
+
+    Args:
+        messageid (str)
+    """
+    try:
+        gmail_utils.service.users().messages().modify(
+            userId="me", id=args["messageid"], body={"removeLabelIds": ["IMPORTANT"]}
+        ).execute()
+        return f"Mensaje marcado como no importante: {args['messageid']}"
+    except Exception as e:
+        return f"❌ Error marcando como no importante: {str(e)}"
 
 
 # --- Herramientas: Operaciones con etiquetas ---
