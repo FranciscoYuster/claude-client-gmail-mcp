@@ -2,6 +2,8 @@
 
 > Acceso de asistentes de IA a Gmail mediante el Model Context Protocol (MCP)
 
+> **Requisito esencial:** Debes tener instalado [Claude Desktop](https://www.anthropic.com/claude/desktop) para poder utilizar este servidor MCP.
+
 ## 🧪 ¿Qué es MCP?
 
 MCP (Model Context Protocol) es un protocolo de integración desarrollado por Antrophic para facilitar la comunicación entre modelos de lenguaje (como ChatGPT o Claude) y herramientas externas (APIs, bases de datos, servicios web, etc.). Su objetivo es proporcionar un contexto ampliado, estructurado y en tiempo real a los modelos, permitiéndoles ejecutar acciones más allá del texto.
@@ -17,7 +19,7 @@ MCP (Model Context Protocol) es un protocolo de integración desarrollado por An
    - Descarga el archivo `client_secret_...json` y déjalo en tu carpeta Descargas (no te preocupes por el nombre ni la ubicación final)
    - El instalador detectará y moverá el archivo automáticamente a la carpeta correcta y con el nombre adecuado
 > [!IMPORTANT]
-> Solo necesitas descargar el archivo de credenciales desde Google Cloud despues configurar las **URIs de redireccionamiento autorizados** y dejarlo en Descargas. ¡No te preocupes por el nombre ni la ubicación final, el instalador se encarga de todo!
+> Solo necesitas descargar el archivo de credenciales desde Google Cloud despues configurar las **URIs de redireccionamiento autorizadas** y dejarlo en Descargas. ¡No te preocupes por el nombre ni la ubicación final, el instalador se encarga de todo!
 2. Clona este repositorio desde tu **terminal**:
    ```sh
    git clone https://github.com/FranciscoYuster/gmail-client-mcp-server
