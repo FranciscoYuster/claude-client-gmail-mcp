@@ -70,6 +70,7 @@ MCP (Model Context Protocol) es un protocolo de integración desarrollado por An
 - Python 3.11 o superior
 - git
 - Cuenta de Gmail
+- Claude Dekstop
 
 > [!TIP]
 > El instalador te guiará para instalar cualquier requisito que falte.
