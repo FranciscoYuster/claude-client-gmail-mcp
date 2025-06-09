@@ -64,7 +64,7 @@ def final_message():
 def clonar_repo_si_no_existe():
     # Nota: Para clonar una rama específica de GitHub, se usa la URL base del repo y el flag '-b <rama>'.
     # No se debe usar la URL con '/tree/dev', solo la base.
-    repo_url = "https://github.com/FranciscoYuster/gmail-client-mcp-server"
+    repo_url = "https://github.com/FranciscoYuster/claude-client-gmail-mcp"
     destino = os.path.join(os.getcwd(), "gmail-mcp-server")
     if not os.path.exists(destino):
         print("🔄 Clonando el repositorio (rama 'dev')...")

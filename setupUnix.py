@@ -64,7 +64,7 @@ def final_message():
     print("\n🚀 Instalación completa. Ahora abre Claude Desktop.\n")
 
 def clonar_repo_si_no_existe():
-    repo_url = "https://github.com/FranciscoYuster/gmail-client-mcp-server"
+    repo_url = "https://github.com/FranciscoYuster/claude-client-gmail-mcp"
     destino = os.path.join(os.getcwd(), "gmail-mcp-server")
     if not os.path.exists(destino):
         print("🔄 Clonando el repositorio (rama 'dev')...")
