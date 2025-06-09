@@ -7,7 +7,7 @@ from pathlib import Path
 from mcp.server.fastmcp import FastMCP
 import utils.gmail_utils as gmail_utils
 from tools import (
-    send_email, create_draft, read_email, search_emails, delete_email,
+    send_email, create_draft, read_email, search_emails, 
     modify_label, create_label_tool, delete_label_tool, list_labels_tool,
     get_or_create_label_tool, update_label_tool, find_label_by_name_tool,
     download_attachments, get_thread, mark_as_read, mark_as_unread, mark_as_important, mark_as_not_important
@@ -29,7 +29,6 @@ def create_server() -> FastMCP:
     server.tool()(create_draft)
     server.tool()(read_email)
     server.tool()(search_emails)
-    server.tool()(delete_email)
     server.tool()(modify_label)
     server.tool()(create_label_tool)
     server.tool()(delete_label_tool)
