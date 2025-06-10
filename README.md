@@ -83,8 +83,8 @@ MCP (Model Context Protocol) es un protocolo de integración desarrollado por An
 
 1. Clona este repositorio:
    ```sh
-   git clone https://github.com/FranciscoYuster/mcp-server-client-gmail
-   cd mcp-server-client-gmail
+   git clone https://github.com/FranciscoYuster/claude-client-gmail-mcp
+   cd claude-client-gmail-mcp
    ```
 2. Crea y activa un entorno virtual:
    ```sh
