@@ -22,8 +22,8 @@ MCP (Model Context Protocol) es un protocolo de integración desarrollado por An
 > Solo necesitas descargar el archivo de credenciales desde Google Cloud despues configurar las **URIs de redireccionamiento autorizadas** y dejarlo en Descargas. ¡No te preocupes por el nombre ni la ubicación final, el instalador se encarga de todo!
 2. Clona este repositorio desde tu **terminal**:
    ```sh
-   git clone https://github.com/FranciscoYuster/gmail-client-mcp-server
-   cd gmail-client-mcp-server
+   git clone https://github.com/FranciscoYuster/claude-client-gmail-mcp
+   cd claude-client-gmail-mcp
    ```
 3. Y ejecuta el script:
    ```sh
