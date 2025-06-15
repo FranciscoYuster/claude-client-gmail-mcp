@@ -10,6 +10,11 @@ MCP (Model Context Protocol) es un protocolo de integración desarrollado por An
 
 ---
 
+## 🎥 Video con ejemplo de uso
+
+https://github.com/user-attachments/assets/e49b2d76-bcef-4d44-9222-6818f0f57998
+
+
 ## 🚀 Instalación rápida (Windows)
 
 1. Primero:
